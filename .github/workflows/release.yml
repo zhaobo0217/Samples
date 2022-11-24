@@ -100,10 +100,9 @@ jobs:
         env:
           VERSION_NAME: ${{ github.event.release.tag_name }}
         run: |
-          echo "build start"
           versionTag=$VERSION_NAME
           versionArray=(${versionTag//@/ })
-          echo "build mid"
+          echo "build $versionTag"
           variantName=${{env.BUILD_NAME}}
           variantType=`echo ${variantName:0:1} | tr  '[a-z]' '[A-Z]'`${variantName:1}
           echo "google variantType:$variantType"
