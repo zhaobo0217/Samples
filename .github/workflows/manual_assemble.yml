@@ -82,7 +82,7 @@ jobs:
             vCode=" -PversionCode=$versionCode"
           fi
           echo "versionName:$vName; versionCode:$vCode"
-          bash gradlew --no-daemon clean assemble${variantType} "$googleParam" "$vName" "$vCode"
+          bash gradlew --no-daemon clean assemble${variantType} $googleParam $vName $vCode
       - name: Handle sign params
         id: sign-params
         env:
