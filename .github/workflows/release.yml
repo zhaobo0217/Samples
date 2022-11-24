@@ -71,6 +71,7 @@ jobs:
           release-tag: ${{ github.event.release.tag_name}}
     outputs:
       job-status: ${{ job.status }}
+
   assmbleGoogle:
     name: Assmble google
     runs-on: ubuntu-latest
@@ -104,6 +105,19 @@ jobs:
           variantName=${{env.BUILD_NAME}}
           variantType=`echo ${variantName:0:1} | tr  '[a-z]' '[A-Z]'`${variantName:1}
           echo "google variantType:$variantType"
+          bash gradlew --no-daemon clean assemble${variantType} -PisAndroidMarket=true -PversionName=${versionArray[0]} -PversionCode=${versionArray[1]}
+      - uses: kevin-david/zipalign-sign-android-release@v1.1
+        name: Sign debug app APK
+        id: sign_app
+        with:
+          releaseDirectory: app/build/outputs/apk/${{env.BUILD_NAME}}
+          signingKeyBase64: ${{ secrets.KEY_STORE }}
+          alias: ${{ secrets.KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
+          keyPassword: ${{ secrets.KEY_PASSWORD }}
+          zipAlign: true
+        env:
+          BUILD_TOOLS_VERSION: "30.0.2"
       - name: Write channels
         env:
           WALLE_JAR_PATH: "${{ github.workspace }}/buildscript/walle-cli-all.jar"
@@ -111,12 +125,12 @@ jobs:
         run: |
           mkdir $OUTPUT_DIR
           python buildscript/write_channel.py gen -w $WALLE_JAR_PATH -i $APK_PATH -o $OUTPUT_DIR -c $CHANNELS
-        - name: Compress outputs
-          run: |
-            zipName="$OUTPUT_DIR.zip"
-            cp app/build/outputs/mapping/*/mapping.txt $OUTPUT_DIR
-            zip -r $zipName $OUTPUT_DIR
-            echo "zip success:$zipName"
+      - name: Compress outputs
+        run: |
+          zipName="$OUTPUT_DIR.zip"
+          cp app/build/outputs/mapping/*/mapping.txt $OUTPUT_DIR
+          zip -r $zipName $OUTPUT_DIR
+          echo "zip success:$zipName"
       - uses: AButler/upload-release-assets@v2.0
         with:
           files: ${{ format('{0}.zip', env.OUTPUT_DIR) }}
