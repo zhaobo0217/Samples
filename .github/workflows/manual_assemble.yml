@@ -86,7 +86,7 @@ jobs:
       - name: Handle sign params
         id: sign-params
         env:
-          isDebug: ${{ inputs.buildType == "debug" }}
+          isDebug: ${{ inputs.buildType == 'debug' }}
         run: |
           signingKeyBase64=""
           alias=""
@@ -117,7 +117,7 @@ jobs:
           signingKeyBase64: ${{ steps.sign-params.outputs.signingKeyBase64 }}
           alias: ${{ steps.sign-params.outputs.alias }}
           keyStorePassword: ${{ steps.sign-params.outputs.keyStorePassword }}
-          keyPassword: ${{ ssteps.sign-params.outputs.keyPassword }}
+          keyPassword: ${{ steps.sign-params.outputs.keyPassword }}
           zipAlign: true
         env:
           BUILD_TOOLS_VERSION: "30.0.2"
