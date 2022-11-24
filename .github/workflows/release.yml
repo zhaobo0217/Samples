@@ -101,9 +101,9 @@ jobs:
           echo "google variantType:$variantType"
           vName=${versionArray[0]}
           vCode=${versionArray[1]}
-          isAndroidMarket="-PisAndroidMarket=true"
+          googleParam=" -PisAndroidMarket=true"
           echo "version info:$vName;$vCode"
-          bash gradlew --no-daemon clean assemble${variantType} $isAndroidMarket
+          bash gradlew --no-daemon clean assemble${variantType} $googleParam
       - name: Write channels
         env:
           WALLE_JAR_PATH: "${{ github.workspace }}/buildscript/walle-cli-all.jar"
