@@ -1,0 +1,151 @@
+name: Android Manual Assemble
+
+on:
+  workflow_dispatch:
+    inputs:
+      buildType:
+        description: 'variants'
+        required: true
+        type: choice
+        default: release
+        options:
+          - debug
+          - release
+      isGoogle:
+        description: "is google play"
+        required: false
+        default: false
+        type: boolean
+      ref:
+        description: 'branch name or tag or SHA'
+        required: false
+        default: main
+        type: string
+      channels:
+        description: 'the channels need assemble split with ,'
+        required: true
+        default: qq,xiaomi,huawei
+        type: string
+      versionName:
+        description: 'version name'
+        required: false
+        type: string
+      versionCode:
+        description: 'version code'
+        required: false
+        type: string
+jobs:
+  assmbleRelease:
+    name: Assmble release artifact
+    runs-on: ubuntu-latest
+    env:
+      BUILD_NAME: ${{ inputs.buildType }}
+      CHANNELS: ${{ inputs.channels }}
+      OUTPUT_DIR: final_apks
+      CHECKOUT_REF: ${{ inputs.ref }}
+      IS_GOOGLE_MARKET: ${{ inputs.isGoogle }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: ${{ env.CHECKOUT_REF }}
+      - name: set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: gradle
+      # https://github.com/burrunan/gradle-cache-action
+      - uses: burrunan/gradle-cache-action@v1
+        name: Cache gradle
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      - name: Build & Assemble
+        run: |
+          variantName=${{ env.BUILD_NAME }}
+          versionCode=${{ inputs.versionCode }}
+          versionName=${{ inputs.versionName }}
+          isGoogle=${{ env.IS_GOOGLE_MARKET }}
+          variantType=`echo ${variantName:0:1} | tr  '[a-z]' '[A-Z]'`${variantName:1}
+          echo "variantType:$variantType"
+          googleParam=""
+          vName=""
+          vCode=""
+          if [ $isGoogle ]; then
+            googleParam=" -PisAndroidMarket=true"
+          fi
+          echo "isGoogle:$isGoogle"
+          if [ -n $versionName ]; then
+            vName=" -PversionName=$versionName"
+          fi
+          if [ -n $versionCode ]; then
+            vCode=" -PversionCode=$versionCode"
+          fi
+          echo "versionName:$vName; versionCode:$vCode"
+          bash gradlew --no-daemon clean assemble${variantType} "$googleParam" "$vName" "$vCode"
+      - name: Handle sign params
+        id: sign-params
+        env:
+          isDebug: ${{ inputs.buildType == "debug" }}
+        run: |
+          signingKeyBase64=""
+          alias=""
+          keyStorePassword=""
+          keyPassword=""
+          if [ $isDebug ]
+          then
+            signingKeyBase64=${{ secrets.DEBUG_KEY_STORE }}
+            alias=${{ secrets.DEBUG_KEY_ALIAS }}
+            keyStorePassword=${{ secrets.DEBUG_KEY_STORE_PASSWORD }}
+            keyPassword=${{ secrets.DEBUG_KEY_PASSWORD }}
+          else
+            signingKeyBase64=${{ secrets.KEY_STORE }}
+            alias=${{ secrets.KEY_ALIAS }}
+            keyStorePassword=${{ secrets.KEY_STORE_PASSWORD }}
+            keyPassword=${{ secrets.KEY_PASSWORD }}
+          fi
+          echo "alias:${alias}"
+          echo "::set-output name=signingKeyBase64::$signingKeyBase64"
+          echo "::set-output name=alias::$alias"
+          echo "::set-output name=keyStorePassword::$keyStorePassword"
+          echo "::set-output name=keyPassword::$keyPassword"
+      - uses: kevin-david/zipalign-sign-android-release@v1.1
+        name: Sign app APK
+        id: sign_app
+        with:
+          releaseDirectory: application/build/outputs/apk/${{env.BUILD_NAME}}
+          signingKeyBase64: ${{ steps.sign-params.outputs.signingKeyBase64 }}
+          alias: ${{ steps.sign-params.outputs.alias }}
+          keyStorePassword: ${{ steps.sign-params.outputs.keyStorePassword }}
+          keyPassword: ${{ ssteps.sign-params.outputs.keyPassword }}
+          zipAlign: true
+        env:
+          BUILD_TOOLS_VERSION: "30.0.2"
+      - name: Write channels
+        env:
+          WALLE_JAR_PATH: "${{ github.workspace }}/buildscript/walle-cli-all.jar"
+          APK_PATH: ${{steps.sign_app.outputs.signedReleaseFile}}
+        run: |
+          mkdir $OUTPUT_DIR
+          python buildscript/write_channel.py gen -w $WALLE_JAR_PATH -i $APK_PATH -o $OUTPUT_DIR -c $CHANNELS
+      - uses: actions/upload-artifact@v2
+        with:
+          name: android-${{env.BUILD_NAME}}-apks
+          path: ${{env.OUTPUT_DIR}}
+          # 缓存1天
+          retention-days: 1
+      - name: Lark notifacation
+        if: ${{ success() }}
+        env:
+          PROJECT: "下厨房"
+          DATE: ${{ github.event.workflow_dispatch.repository.updated_at }}
+          AUTHOR: ${{ github.event.workflow_dispatch.sender.login }}
+        run: |
+          title="手动触发打包 $BUILD_NAME"
+          describe="打包渠道：$CHANNELS \n 是否是谷歌：$IS_GOOGLE_MARKET \n 打包分支：$CHECKOUT_REF"
+          type="手动触发(最多保存1天)"
+          cur_run_url="https://github.com/xiachufang/lanfan-android/actions/runs/$GITHUB_RUN_ID"
+          echo "lark success: $describe"
+          # python buildscript/lark_notification.py -p "$PROJECT" -t "$title" -c "$describe" -a "$AUTHOR" -y "$type" -r "$CHECKOUT_REF" -d "$DATE" -u "$cur_run_url" -b "$cur_run_url"
+    outputs:
+      job-status: ${{ job.status }}
