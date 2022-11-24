@@ -113,7 +113,7 @@ jobs:
         name: Sign app APK
         id: sign_app
         with:
-          releaseDirectory: application/build/outputs/apk/${{env.BUILD_NAME}}
+          releaseDirectory: app/build/outputs/apk/${{env.BUILD_NAME}}
           signingKeyBase64: ${{ steps.sign-params.outputs.signingKeyBase64 }}
           alias: ${{ steps.sign-params.outputs.alias }}
           keyStorePassword: ${{ steps.sign-params.outputs.keyStorePassword }}
