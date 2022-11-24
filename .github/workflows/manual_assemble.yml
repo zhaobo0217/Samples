@@ -93,12 +93,13 @@ jobs:
           alias=""
           keyStorePassword=""
           keyPassword=""
-          if [ $isDebug ]
+          if [ "$isDebug" = true ]
           then
             signingKeyBase64=${{ secrets.DEBUG_KEY_STORE }}
             alias=${{ secrets.DEBUG_KEY_ALIAS }}
             keyStorePassword=${{ secrets.DEBUG_KEY_STORE_PASSWORD }}
             keyPassword=${{ secrets.DEBUG_KEY_PASSWORD }}
+            echo "isDebug--------"
           else
             signingKeyBase64=${{ secrets.KEY_STORE }}
             alias=${{ secrets.KEY_ALIAS }}
