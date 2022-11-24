@@ -14,3 +14,48 @@ dependencyResolutionManagement {
 }
 rootProject.name = "Samples"
 include ':app'
+
+static String[] gitVersionTag() {
+    // 获取所有分支里最新的tag
+//    def commit = 'git rev-list --tags --max-count=1'
+//    def cmd = "git describe --tags ${commit.execute().text}"
+//    String version = cmd.execute().text.trim()
+//    if (version.indexOf('@') > -1) {
+//        String[] result = version.split("@")
+//        if (result.length == 2) {
+//            return result
+//        }
+//    }
+    return new String[]{"9.9.9", "999"}
+}
+
+gradle.projectsLoaded { project ->
+    def startParameter = project.gradle.startParameter
+    def rootProject = project.gradle.rootProject
+    def androidMarket = false
+    if (rootProject.hasProperty("isAndroidMarket")) {
+        androidMarket = Boolean.valueOf(isAndroidMarket)
+    }
+    def versionTag = gitVersionTag()
+    def vCode = versionTag[1] as int
+    def vName = versionTag[0]
+    if (rootProject.hasProperty("versionCode")) {
+        vCode = Integer.valueOf(versionCode)
+    }
+    if (rootProject.hasProperty("versionName")) {
+        vName = versionName
+    }
+    println("*****projectsLoaded***** versionName: $vName versionCode: $vCode")
+    def isRelease = false
+    for (String taskName : startParameter.taskNames) {
+        if (taskName.contains("Release") | taskName.contains("release")) {
+            isRelease = true
+            break
+        }
+    }
+    project.gradle.rootProject.ext.enableConfusion = isRelease
+    project.gradle.rootProject.ext.isAndroidMarket = androidMarket
+    project.gradle.rootProject.ext.versionName = vName
+    project.gradle.rootProject.ext.versionCode = vCode
+    println("*****projectsLoaded*****: $isRelease;normal package: ${!androidMarket}")
+}
