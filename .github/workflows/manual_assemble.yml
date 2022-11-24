@@ -71,14 +71,15 @@ jobs:
           googleParam=""
           vName=""
           vCode=""
-          if [ $isGoogle ]; then
+          if [ "$isGoogle" = true ]; then
             googleParam=" -PisAndroidMarket=true"
+            echo "isGoogle-----"
           fi
           echo "isGoogle:$isGoogle"
-          if [ -n $versionName ]; then
+          if [ -n "$versionName" ]; then
             vName=" -PversionName=$versionName"
           fi
-          if [ -n $versionCode ]; then
+          if [ -n "$versionCode" ]; then
             vCode=" -PversionCode=$versionCode"
           fi
           echo "versionName:$vName; versionCode:$vCode"
