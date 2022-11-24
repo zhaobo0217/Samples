@@ -12,7 +12,7 @@ jobs:
       BUILD_NAME: release
       CHANNELS: qq,baidu,taobao,meizu,xiachufang,lenovo,vivo,xiaomi,huawei,oppo,samsung
       OUTPUT_DIR: final_apks
-      CHECKOUT_REF: dev
+      CHECKOUT_REF: main
     steps:
       - uses: actions/checkout@v3
         with:
@@ -77,7 +77,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BUILD_NAME: release
-      CHECKOUT_REF: dev
+      CHECKOUT_REF: main
       OUTPUT_DIR: google_apk
       CHANNELS: androidmarket
     steps:
